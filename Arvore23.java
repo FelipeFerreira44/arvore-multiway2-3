@@ -7,7 +7,7 @@ class No23 {
 
     public No23(boolean ehFolha) {
         this.chaves = new int[3]; 
-        this.filhos = new No23[4];
+        this.filhos = new No23[4]; 
         this.numChaves = 0;
         this.numFilhos = 0;
         this.ehFolha = ehFolha;
