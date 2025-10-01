@@ -1,47 +1,79 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 class No23 {
-    List<Integer> chaves;
-    List<No23> filhos;
+    int[] chaves;
+    No23[] filhos;
+    int numChaves;
+    int numFilhos;
     boolean ehFolha;
 
     public No23(boolean ehFolha) {
-        this.chaves = new ArrayList<>();
-        this.filhos = new ArrayList<>();
+        this.chaves = new int[3]; 
+        this.filhos = new No23[4];
+        this.numChaves = 0;
+        this.numFilhos = 0;
         this.ehFolha = ehFolha;
     }
 
     public void adicionarChave(int chave) {
-        this.chaves.add(chave);
-        Collections.sort(this.chaves);
+        
+        int i = numChaves - 1;
+        while (i >= 0 && chaves[i] > chave) {
+            chaves[i + 1] = chaves[i];
+            i--;
+        }
+        chaves[i + 1] = chave;
+        numChaves++;
     }
 
     public void adicionarFilho(No23 filho) {
-        this.filhos.add(filho);
-        this.filhos.sort((n1, n2) -> {
-            if (n1.chaves.isEmpty() || n2.chaves.isEmpty()) return 0;
-            return Integer.compare(n1.chaves.get(0), n2.chaves.get(0));
-        });
+        
+        int chaveFilho = (filho.numChaves > 0) ? filho.chaves[0] : Integer.MAX_VALUE;
+        int i = numFilhos - 1;
+        while (i >= 0) {
+            int chaveAtual = (filhos[i].numChaves > 0) ? filhos[i].chaves[0] : Integer.MAX_VALUE;
+            if (chaveAtual <= chaveFilho) break;
+            filhos[i + 1] = filhos[i];
+            i--;
+        }
+        filhos[i + 1] = filho;
+        numFilhos++;
     }
 
     public boolean estaCheio() {
-        return chaves.size() == 2;
+        return numChaves == 3; 
     }
 
     public int encontrarIndiceFilho(int valor) {
-        for (int i = 0; i < chaves.size(); i++) {
-            if (valor < chaves.get(i)) {
+        for (int i = 0; i < numChaves; i++) {
+            if (valor < chaves[i]) {
                 return i;
             }
         }
-        return chaves.size();
+        return numChaves;
+    }
+
+    public void removerChave(int indice) {
+        for (int i = indice; i < numChaves - 1; i++) {
+            chaves[i] = chaves[i + 1];
+        }
+        numChaves--;
+    }
+
+    public void removerFilho(int indice) {
+        for (int i = indice; i < numFilhos - 1; i++) {
+            filhos[i] = filhos[i + 1];
+        }
+        numFilhos--;
     }
 
     @Override
     public String toString() {
-        return "Chaves: " + chaves.toString() + (ehFolha ? " (Folha)" : " (Interno)");
+        String s = "Chaves: [";
+        for (int i = 0; i < numChaves; i++) {
+            s += chaves[i];
+            if (i < numChaves - 1) s += ", ";
+        }
+        s += "]" + (ehFolha ? " (Folha)" : " (Interno)");
+        return s;
     }
 }
 
@@ -61,9 +93,9 @@ public class Arvore23 {
     }
 
     private boolean buscar(No23 no, int valor) {
-        for (int chave : no.chaves) {
-            if (chave == valor) {
-                System.out.println("Valor " + valor + " encontrado no nó: " + no.chaves);
+        for (int i = 0; i < no.numChaves; i++) {
+            if (no.chaves[i] == valor) {
+                System.out.println("Valor " + valor + " encontrado no nó: " + no.toString());
                 return true;
             }
         }
@@ -74,7 +106,7 @@ public class Arvore23 {
         }
 
         int indiceFilho = no.encontrarIndiceFilho(valor);
-        return buscar(no.filhos.get(indiceFilho), valor);
+        return buscar(no.filhos[indiceFilho], valor);
     }
 
     public void inserir(int valor) {
@@ -94,26 +126,26 @@ public class Arvore23 {
     private No23 inserirRecursivo(No23 no, int valor) {
         if (no.ehFolha) {
             no.adicionarChave(valor);
-            
-            if (no.chaves.size() == 3) {
+
+            if (no.estaCheio()) {
                 return dividirNo(no);
             }
             return null;
         } else {
             int indiceFilho = no.encontrarIndiceFilho(valor);
-            No23 filho = no.filhos.get(indiceFilho);
-            
+            No23 filho = no.filhos[indiceFilho];
+
             No23 noPromovido = inserirRecursivo(filho, valor);
-            
+
             if (noPromovido != null) {
-                no.adicionarChave(noPromovido.chaves.get(0));
-                
-                no.filhos.remove(indiceFilho);
-                for (No23 novoFilho : noPromovido.filhos) {
-                    no.adicionarFilho(novoFilho);
+                no.adicionarChave(noPromovido.chaves[0]);
+
+                no.removerFilho(indiceFilho);
+                for (int i = 0; i < noPromovido.numFilhos; i++) {
+                    no.adicionarFilho(noPromovido.filhos[i]);
                 }
-                
-                if (no.chaves.size() == 3) {
+
+                if (no.estaCheio()) {
                     return dividirNo(no);
                 }
             }
@@ -125,21 +157,25 @@ public class Arvore23 {
         No23 esquerda = new No23(no.ehFolha);
         No23 direita = new No23(no.ehFolha);
         No23 pai = new No23(false);
-        
-        esquerda.adicionarChave(no.chaves.get(0));
-        direita.adicionarChave(no.chaves.get(2));
-        pai.adicionarChave(no.chaves.get(1));
-        
+
+        esquerda.adicionarChave(no.chaves[0]);
+        direita.adicionarChave(no.chaves[2]);
+        pai.adicionarChave(no.chaves[1]);
+
         if (!no.ehFolha) {
-            esquerda.filhos.add(no.filhos.get(0));
-            esquerda.filhos.add(no.filhos.get(1));
-            direita.filhos.add(no.filhos.get(2));
-            direita.filhos.add(no.filhos.get(3));
+            esquerda.filhos[0] = no.filhos[0];
+            esquerda.filhos[1] = no.filhos[1];
+            esquerda.numFilhos = 2;
+
+            direita.filhos[0] = no.filhos[2];
+            direita.filhos[1] = no.filhos[3];
+            direita.numFilhos = 2;
         }
-        
-        pai.filhos.add(esquerda);
-        pai.filhos.add(direita);
-        
+
+        pai.filhos[0] = esquerda;
+        pai.filhos[1] = direita;
+        pai.numFilhos = 2;
+
         return pai;
     }
 
@@ -151,16 +187,16 @@ public class Arvore23 {
         }
 
         removerRecursivo(raiz, valor);
-        
-        if (raiz.chaves.isEmpty() && !raiz.filhos.isEmpty()) {
-            raiz = raiz.filhos.get(0);
+
+        if (raiz.numChaves == 0 && raiz.numFilhos > 0) {
+            raiz = raiz.filhos[0];
         }
     }
 
     private boolean removerRecursivo(No23 no, int valor) {
         int indiceChave = -1;
-        for (int i = 0; i < no.chaves.size(); i++) {
-            if (no.chaves.get(i) == valor) {
+        for (int i = 0; i < no.numChaves; i++) {
+            if (no.chaves[i] == valor) {
                 indiceChave = i;
                 break;
             }
@@ -168,25 +204,25 @@ public class Arvore23 {
 
         if (no.ehFolha) {
             if (indiceChave != -1) {
-                no.chaves.remove(indiceChave);
+                no.removerChave(indiceChave);
                 System.out.println("Chave " + valor + " removida da folha.");
-                return no.chaves.size() < 1;
+                return no.numChaves < 1;
             } else {
                 System.out.println("Chave " + valor + " não encontrada na folha.");
                 return false;
             }
         } else {
             if (indiceChave != -1) {
-                No23 noPredecessor = encontrarPredecessor(no.filhos.get(indiceChave));
-                int valorPredecessor = noPredecessor.chaves.get(noPredecessor.chaves.size() - 1);
-                
-                no.chaves.set(indiceChave, valorPredecessor);
-                
-                return removerRecursivo(no.filhos.get(indiceChave), valorPredecessor);
+                No23 noPredecessor = encontrarPredecessor(no.filhos[indiceChave]);
+                int valorPredecessor = noPredecessor.chaves[noPredecessor.numChaves - 1];
+
+                no.chaves[indiceChave] = valorPredecessor;
+
+                return removerRecursivo(no.filhos[indiceChave], valorPredecessor);
             } else {
                 int indiceFilho = no.encontrarIndiceFilho(valor);
-                boolean precisaBalanceamento = removerRecursivo(no.filhos.get(indiceFilho), valor);
-                
+                boolean precisaBalanceamento = removerRecursivo(no.filhos[indiceFilho], valor);
+
                 if (precisaBalanceamento) {
                     return tratarUnderflow(no, indiceFilho);
                 }
@@ -199,28 +235,28 @@ public class Arvore23 {
         if (no.ehFolha) {
             return no;
         }
-        return encontrarPredecessor(no.filhos.get(no.filhos.size() - 1));
+        return encontrarPredecessor(no.filhos[no.numFilhos - 1]);
     }
 
     private boolean tratarUnderflow(No23 pai, int indiceFilho) {
-        No23 filho = pai.filhos.get(indiceFilho);
-        
+        No23 filho = pai.filhos[indiceFilho];
+
         if (indiceFilho > 0) {
-            No23 irmaoEsquerdo = pai.filhos.get(indiceFilho - 1);
-            if (irmaoEsquerdo.chaves.size() > 1) {
+            No23 irmaoEsquerdo = pai.filhos[indiceFilho - 1];
+            if (irmaoEsquerdo.numChaves > 1) {
                 redistribuirEsquerda(pai, indiceFilho);
                 return false;
             }
         }
-        
-        if (indiceFilho < pai.filhos.size() - 1) {
-            No23 irmaoDireito = pai.filhos.get(indiceFilho + 1);
-            if (irmaoDireito.chaves.size() > 1) {
+
+        if (indiceFilho < pai.numFilhos - 1) {
+            No23 irmaoDireito = pai.filhos[indiceFilho + 1];
+            if (irmaoDireito.numChaves > 1) {
                 redistribuirDireita(pai, indiceFilho);
                 return false;
             }
         }
-        
+
         if (indiceFilho > 0) {
             return mergeComIrmaoEsquerdo(pai, indiceFilho);
         } else {
@@ -229,57 +265,76 @@ public class Arvore23 {
     }
 
     private void redistribuirEsquerda(No23 pai, int indiceFilho) {
-        No23 filho = pai.filhos.get(indiceFilho);
-        No23 irmaoEsquerdo = pai.filhos.get(indiceFilho - 1);
-        
-        filho.adicionarChave(pai.chaves.get(indiceFilho - 1));
-        
-        pai.chaves.set(indiceFilho - 1, irmaoEsquerdo.chaves.remove(irmaoEsquerdo.chaves.size() - 1));
-        
+        No23 filho = pai.filhos[indiceFilho];
+        No23 irmaoEsquerdo = pai.filhos[indiceFilho - 1];
+
+        filho.adicionarChave(pai.chaves[indiceFilho - 1]);
+
+        pai.chaves[indiceFilho - 1] = irmaoEsquerdo.chaves[irmaoEsquerdo.numChaves - 1];
+        irmaoEsquerdo.removerChave(irmaoEsquerdo.numChaves - 1);
+
         if (!filho.ehFolha) {
-            filho.filhos.add(0, irmaoEsquerdo.filhos.remove(irmaoEsquerdo.filhos.size() - 1));
+            for (int i = filho.numFilhos; i > 0; i--) {
+                filho.filhos[i] = filho.filhos[i - 1];
+            }
+            filho.filhos[0] = irmaoEsquerdo.filhos[irmaoEsquerdo.numFilhos - 1];
+            filho.numFilhos++;
+            irmaoEsquerdo.removerFilho(irmaoEsquerdo.numFilhos - 1);
         }
     }
 
     private void redistribuirDireita(No23 pai, int indiceFilho) {
-        No23 filho = pai.filhos.get(indiceFilho);
-        No23 irmaoDireito = pai.filhos.get(indiceFilho + 1);
-        
-        filho.adicionarChave(pai.chaves.get(indiceFilho));
-        
-        pai.chaves.set(indiceFilho, irmaoDireito.chaves.remove(0));
-        
+        No23 filho = pai.filhos[indiceFilho];
+        No23 irmaoDireito = pai.filhos[indiceFilho + 1];
+
+        filho.adicionarChave(pai.chaves[indiceFilho]);
+
+        pai.chaves[indiceFilho] = irmaoDireito.chaves[0];
+        irmaoDireito.removerChave(0);
+
         if (!filho.ehFolha) {
-            filho.filhos.add(irmaoDireito.filhos.remove(0));
+            filho.filhos[filho.numFilhos] = irmaoDireito.filhos[0];
+            filho.numFilhos++;
+            irmaoDireito.removerFilho(0);
         }
     }
 
     private boolean mergeComIrmaoEsquerdo(No23 pai, int indiceFilho) {
-        No23 filho = pai.filhos.get(indiceFilho);
-        No23 irmaoEsquerdo = pai.filhos.get(indiceFilho - 1);
-        
-        irmaoEsquerdo.adicionarChave(pai.chaves.remove(indiceFilho - 1));
-        
-        irmaoEsquerdo.chaves.addAll(filho.chaves);
-        irmaoEsquerdo.filhos.addAll(filho.filhos);
-        
-        pai.filhos.remove(indiceFilho);
-        
-        return pai.chaves.isEmpty();
+        No23 filho = pai.filhos[indiceFilho];
+        No23 irmaoEsquerdo = pai.filhos[indiceFilho - 1];
+
+        irmaoEsquerdo.adicionarChave(pai.chaves[indiceFilho - 1]);
+        pai.removerChave(indiceFilho - 1);
+
+        for (int i = 0; i < filho.numChaves; i++) {
+            irmaoEsquerdo.adicionarChave(filho.chaves[i]);
+        }
+        for (int i = 0; i < filho.numFilhos; i++) {
+            irmaoEsquerdo.adicionarFilho(filho.filhos[i]);
+        }
+
+        pai.removerFilho(indiceFilho);
+
+        return pai.numChaves == 0;
     }
 
     private boolean mergeComIrmaoDireito(No23 pai, int indiceFilho) {
-        No23 filho = pai.filhos.get(indiceFilho);
-        No23 irmaoDireito = pai.filhos.get(indiceFilho + 1);
-        
-        filho.adicionarChave(pai.chaves.remove(indiceFilho));
-        
-        filho.chaves.addAll(irmaoDireito.chaves);
-        filho.filhos.addAll(irmaoDireito.filhos);
-        
-        pai.filhos.remove(indiceFilho + 1);
-        
-        return pai.chaves.isEmpty();
+        No23 filho = pai.filhos[indiceFilho];
+        No23 irmaoDireito = pai.filhos[indiceFilho + 1];
+
+        filho.adicionarChave(pai.chaves[indiceFilho]);
+        pai.removerChave(indiceFilho);
+
+        for (int i = 0; i < irmaoDireito.numChaves; i++) {
+            filho.adicionarChave(irmaoDireito.chaves[i]);
+        }
+        for (int i = 0; i < irmaoDireito.numFilhos; i++) {
+            filho.adicionarFilho(irmaoDireito.filhos[i]);
+        }
+
+        pai.removerFilho(indiceFilho + 1);
+
+        return pai.numChaves == 0;
     }
 
     public void imprimirArvore() {
@@ -299,8 +354,8 @@ public class Arvore23 {
         System.out.println(no);
 
         if (!no.ehFolha) {
-            for (No23 filho : no.filhos) {
-                imprimirArvore(filho, nivel + 1);
+            for (int i = 0; i < no.numFilhos; i++) {
+                imprimirArvore(no.filhos[i], nivel + 1);
             }
         }
     }
@@ -309,9 +364,9 @@ public class Arvore23 {
         Arvore23 arvore = new Arvore23();
 
         System.out.println("=== TESTE DA ÁRVORE 2-3 ===");
-        
+
         int[] valores = {50, 30, 70, 20, 40, 60, 80};
-        
+
         for (int valor : valores) {
             arvore.inserir(valor);
             arvore.imprimirArvore();
