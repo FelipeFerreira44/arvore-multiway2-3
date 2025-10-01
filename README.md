@@ -19,7 +19,7 @@
 
 ### No GDB 
 1. Acesse https://www.onlinegdb.com.
-2. Crie um novo programa e cole o conteúdo de `Arvore23.java`.
+2. Apague o código do source code e cole o conteúdo de `Arvore23.java`.
 3. Mude o nome do arquivo para 'Arvore23.java'.
 4. Salve o programa.
 5. No console de query execute.
